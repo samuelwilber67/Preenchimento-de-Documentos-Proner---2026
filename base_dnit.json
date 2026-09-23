@@ -1,0 +1,4 @@
+{
+  "_instrucoes": "Complemento/correção manual da indexação automática dos PDFs de base/cadernos/. O que estiver aqui TEM PRECEDÊNCIA sobre o texto extraído do PDF — use para corrigir um serviço que a extração não pegou bem, ou para cadastrar um serviço cujo caderno você não tem. Formato: \"codigo\": {\"titulo\": \"...\", \"descricao\": \"...\"}. Normalmente fica vazio.",
+  "servicos": {}
+}
