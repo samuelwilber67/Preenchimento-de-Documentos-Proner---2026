@@ -14,20 +14,97 @@ consegue baixar os documentos, **sem precisar de login na Claude**.
 
 ```
 proner-preenchedor/
-├── streamlit_app.py      ← o app inteiro (interface + motor de preenchimento)
+├── streamlit_app.py      ← interface (formulário, uploads, botões de download)
+├── engine.py             ← motor de preenchimento (substituição de tokens)
 ├── requirements.txt      ← bibliotecas Python necessárias
-├── runtime.txt            ← versão do Python a usar no deploy
+├── runtime.txt           ← versão do Python a usar no deploy
 ├── .gitignore
-├── README.md              ← este arquivo
-└── templates/             ← os 15 .docx ORIGINAIS já com os marcadores {{TOKEN}}
+├── README.md             ← este arquivo
+├── base/
+│   ├── cadernos/         ← PDFs dos cadernos técnicos do DNIT (você envia aqui)
+│   ├── indice_cadernos.json  ← índice gerado a partir dos PDFs (cache)
+│   └── base_dnit.json    ← correções/complementos manuais (opcional)
+└── templates/            ← os 15 .docx ORIGINAIS já com os marcadores {{TOKEN}}
     ├── ART_FISCALIZACAO_OU_DECLARACAO_RESP_TECNICO.docx
-    ├── DECLARACAO_CONFORM_LISTA_VER_ART.docx
     ├── ... (15 arquivos)
 ```
 
-**Importante:** a pasta `templates/` precisa ir para o GitHub junto com o
-código — é ela que contém os documentos que o app preenche. Não delete nem
-renomeie esses arquivos.
+## ✨ Funcionalidades
+
+- **Convênio ou Proposta** — na fase de proposta ainda não existe número de
+  convênio. Escolhendo "Proposta", todos os documentos passam a dizer
+  "proposta nº ..." no lugar de "convênio nº ...", inclusive nos títulos de
+  quadro ("DADOS DA PROPOSTA") e nos rótulos das tabelas.
+- **Desonerado / não desonerado** — a Declaração de Desoneração de Folha é
+  preenchida com a alternativa escolhida.
+- **Trechos** — informe quantos trechos quiser; cada um gera uma linha na
+  tabela "Informações Básicas" da Definição do Objeto, com nome (sugerido
+  automaticamente como "Trecho 1", "Trecho 2"... e editável), coordenadas
+  inicial e final, e extensão.
+- **Eixo (IN 25) e Descrição do Objeto** — campos próprios, preenchidos na
+  Definição do Objeto.
+- **Memorial Descritivo automático** — envie a planilha orçamentária
+  (.xlsx ou .csv); o sistema identifica os códigos das composições, busca as
+  descrições nos cadernos técnicos do DNIT em PDF (pasta `base/cadernos/`) e
+  monta o memorial seguindo a numeração do orçamento.
+- **Destaque amarelo** em tudo que foi substituído, para revisão rápida.
+- **Logotipo** da prefeitura no cabeçalho, centralizado e sem distorção.
+
+## 📚 Base de descrições técnicas (memorial descritivo)
+
+A base é alimentada por **PDFs dos cadernos técnicos do DNIT** colocados na
+pasta `base/cadernos/` — exatamente como os templates. Basta enviar o PDF
+para essa pasta no GitHub; o app indexa sozinho na primeira execução.
+
+**Como a indexação funciona:** os cadernos do SICRO trazem, no final, o
+*Apêndice A – Relação das composições de custos por subgrupo*, que liga cada
+subgrupo (ex.: "2.3.1 Revestimento primário") aos códigos SICRO
+correspondentes. O app lê essa tabela, lê as seções do corpo do caderno, e
+cruza as duas coisas — assim cada código recebe o texto da sua própria seção.
+Isso é necessário porque, no corpo do caderno, o código **não** aparece junto
+do texto do serviço.
+
+**Cadernos já incluídos e testados** (todos com Apêndice A reconhecido):
+
+| Caderno | Subgrupos | Códigos |
+|---|---|---|
+| G20 – Drenagem | 62 | 755 |
+| G55 – Terraplenagem | 27 | 304 |
+| G59 – Transportes | 33 | 311 |
+| G40 – Pavimentação | 58 | 210 |
+| G49 – Manutenção | 73 | 135 |
+| **Total** | **253** | **1.715** |
+
+Nenhum código aparece em mais de um caderno, então não há conflito de origem.
+
+**Conferindo o resultado:** no app, abra o painel "Base de descrições
+técnicas". Ele lista cada código, o título e a seção de onde o texto veio, e
+permite ver o texto completo antes de gerar os documentos.
+
+**Serviços sem descrição** não impedem a geração: entram no memorial com a
+descrição da própria planilha e uma marcação
+`[DESCRIÇÃO TÉCNICA NÃO CADASTRADA NA BASE — código XXXXX]`, e o app avisa
+quais faltam. Se um caderno específico não tiver Apêndice A, o app cai para
+uma heurística alternativa e sinaliza que a associação é menos confiável.
+
+**Correções manuais:** o arquivo `base/base_dnit.json` complementa (e tem
+precedência sobre) a extração automática. Use-o para corrigir um serviço que
+saiu mal ou cadastrar um cujo caderno você não tem:
+
+```json
+"servicos": {
+  "4011234": { "titulo": "Nome curto", "descricao": "Texto..." }
+}
+```
+
+**Sobre desempenho e tamanho:** indexar os cinco cadernos leva ~25 s e gera
+`base/indice_cadernos.json` (~8,7 MB), que já vai versionado — o app sobe sem
+esperar. Ao adicionar ou trocar PDFs, use o botão "🔄 Reindexar os PDFs".
+
+Se quiser um repositório mais enxuto, **os PDFs são opcionais**: depois de
+indexados, o app funciona só com o `indice_cadernos.json`. Nesse caso ele
+avisa que está usando o índice pronto e não apaga nada — mas você precisará
+recolocar os PDFs se quiser reindexar mais tarde.
 
 ---
 
